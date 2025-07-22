@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:latest
+    ports:
+      - 4432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DATABASE=debezium_master
+    volumes:
+      - /var/lib/pgsql/debezium_pg_data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=aviatoryona67@gmail.com
+      - PGADMIN_DEFAULT_PASSWORD=Admin@123
+    ports:
+      - '5051:80'
+    restart: always
+
+volumes:
+  debezium_pg_data:

@@ -1,0 +1,46 @@
+### GET Connectors
+GET http://127.0.0.1:8083/connectors
+
+### POST Register Connector
+POST http://127.0.0.1:8083/connectors
+Content-Type: application/json
+
+{
+  "name"  : "postgres-cdc-connector",
+  "config": {
+    "connector.class"      : "io.debezium.connector.postgresql.PostgresConnector",
+    "tasks.max"            : "1",
+    "database.hostname"    : "postgres",
+    "database.port"        : "5432",
+    "database.user"        : "postgres",
+    "database.password"    : "postgres",
+    "database.dbname"      : "debezium_master",
+    "database.server.name" : "debezium_master",
+    "plugin.name"          : "pgoutput",
+    "topic.prefix"         : "debezium_master",
+    "table.include.list"   : "public.customers,public.invoices",
+    "heartbeat.interval.ms": "5000"
+  }
+}
+
+### POST Update Connector
+PUT http://127.0.0.1:8083/connectors/postgres-cdc-connector/config
+Content-Type: application/json
+
+{
+  "connector.class"      : "io.debezium.connector.postgresql.PostgresConnector",
+  "tasks.max"            : "1",
+  "database.hostname"    : "postgres",
+  "database.port"        : "5432",
+  "database.user"        : "postgres",
+  "database.password"    : "postgres",
+  "database.dbname"      : "debezium_master",
+  "database.server.name" : "debezium_master",
+  "plugin.name"          : "pgoutput",
+  "topic.prefix"         : "debezium_master",
+  "table.include.list"   : "public.customers,public.invoices",
+  "heartbeat.interval.ms": "5000"
+}
+
+### Delete connector
+DELETE http://127.0.0.1:8083/connectors/postgres-cdc-connector
