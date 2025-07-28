@@ -1,0 +1,72 @@
+# Application Port
+server:
+  port: ${HOST_PORT:8081}
+  tomcat:
+    connection-timeout: 300000
+    max-http-form-post-size: 100MB
+
+# Application Name
+spring:
+  application:
+    name: debezium-demo
+  threads:
+    virtual:
+      enabled: true
+  # Hibernate Configuration
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false # Turn off SQL logging to reduce overhead
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+          fetch_size: 50
+        format_sql: true
+        order_inserts: true
+        order_updates: true
+      generate_statistics: false
+      use_sql_comments: false
+
+  # PostgreSQL Database Configuration
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://172.17.0.1:4432/debezium_master}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: 20 # Adjust based on an expected load
+      minimum-idle: 5
+      idle-timeout: 10000 # 10 seconds
+      connection-timeout: 30000 # 30 seconds
+      max-lifetime: 1800000 # 30 minutes
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:2255}
+    consumer:
+      group-id: debezium-demo-group
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+# Cross-Origin Resource Sharing (CORS)
+cors:
+  allowed-origins: ${FRONTEND_URL:http://localhost:8081}
+  allowed-methods: GET, POST, PUT, DELETE
+  allowed-headers: Authorization, Content-Type
+  allow-credentials: true
+
+# Logging Configuration
+logging:
+  level:
+    #    org.hibernate.SQL: DEBUG # Enable for development only to see generated SQL
+    com.zaxxer.hikari: WARN  # Monitor connection pool warnings
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+

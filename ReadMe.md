@@ -1,5 +1,14 @@
 # Debezium , Kafka Connect, Postgres
 
+## Automated Script
+
+> configure the environment variables in `.env` file and execute the script below to build and run all services.
+```bash 
+bash build.sh
+```
+
+## Manual Steps
+
 > Start DB
 
 ```bash
