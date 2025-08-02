@@ -22,4 +22,8 @@ public class InvoiceService {
         }
         repository.save(invoice);
     }
+
+    public boolean existsInvoiceByRecordId(long id) {
+        return repository.existsInvoiceByRecordId(id);
+    }
 }
