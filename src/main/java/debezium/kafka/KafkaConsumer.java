@@ -20,8 +20,6 @@ public class KafkaConsumer {
     public void listen(ConsumerRecord<String, Object> record) {
         Object o = record.value();
         String topic = record.topic();
-        System.out.println("Topic :::: " + topic);
-
         if (topic.equals("processed_invoices_topic")) {
             processInvoice(o);
         }
@@ -36,9 +34,8 @@ public class KafkaConsumer {
             // Assuming json is a String representation of an Invoice
             Invoice invoice = Invoice.fromJson(json.toString());
             if (invoice != null) {
-                System.out.println("Received invoice: " + invoice);
                 invoiceService.save(invoice);
-                log.info("Processed invoice: {}", invoice);
+                log.info("Processed invoice: {}", invoice.getId());
             } else {
                 log.warn("Failed to parse invoice from JSON: {}", json);
             }

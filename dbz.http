@@ -19,28 +19,35 @@ Content-Type: application/json
     "plugin.name"          : "pgoutput",
     "topic.prefix"         : "debezium_master",
     "table.include.list"   : "public.customers,public.invoices",
-    "heartbeat.interval.ms": "5000"
+    "heartbeat.interval.ms": "5000",
+    "snapshot.mode"        : "never",
+    "slot.name"            : "cdc_no_snapshot"
   }
 }
 
-### POST Update Connector
+### POST Update Connector.   snapshot.mode: initial_only/never
 PUT http://127.0.0.1:8083/connectors/postgres-cdc-connector/config
 Content-Type: application/json
 
 {
-  "connector.class"      : "io.debezium.connector.postgresql.PostgresConnector",
-  "tasks.max"            : "1",
-  "database.hostname"    : "postgres",
-  "database.port"        : "5432",
-  "database.user"        : "postgres",
-  "database.password"    : "postgres",
-  "database.dbname"      : "debezium_master",
-  "database.server.name" : "debezium_master",
-  "plugin.name"          : "pgoutput",
-  "topic.prefix"         : "debezium_master",
-  "table.include.list"   : "public.customers,public.invoices",
-  "heartbeat.interval.ms": "5000"
+  "connector.class"                                : "io.debezium.connector.postgresql.PostgresConnector",
+  "tasks.max"                                      : "1",
+  "database.hostname"                              : "postgres",
+  "database.port"                                  : "5432",
+  "database.user"                                  : "postgres",
+  "database.password"                              : "postgres",
+  "database.dbname"                                : "debezium_master",
+  "database.server.name"                           : "debezium_master",
+  "plugin.name"                                    : "pgoutput",
+  "topic.prefix"                                   : "debezium_master",
+  "table.include.list"                             : "public.customers,public.invoices",
+  "heartbeat.interval.ms"                          : "5000",
+  "snapshot.mode"                                  : "never",
+  "slot.name"                                      : "cdc_no_snapshot"
 }
+
+### status connector
+GET http://localhost:8083/connectors/postgres-cdc-connector/status
 
 ### Delete connector
 DELETE http://127.0.0.1:8083/connectors/postgres-cdc-connector

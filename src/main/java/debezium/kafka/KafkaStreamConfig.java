@@ -31,7 +31,6 @@ public class KafkaStreamConfig {
         //stream values and forward to another topic
         stream.mapValues(rawJson -> {
                     JsonNode beforeJson = beforeJson(rawJson);
-                    System.out.println("Before JSON: " + beforeJson);
                     JsonNode afterJson = afterJson(rawJson);
                     if (afterJson == null) {
                         //note: record deleted, check why
