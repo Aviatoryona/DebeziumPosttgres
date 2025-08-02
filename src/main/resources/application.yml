@@ -61,7 +61,45 @@ spring:
         processing.guarantee: exactly_once
         commit.interval.ms: 1000
         auto-offset-reset: none
+        cache.max.bytes.buffering: 10485760 # 10 MB
+        num.stream.threads: 7 # Adjust based on the number of CPU cores available
+        max.poll.records: 500 # Adjust based on expected load
+        max.poll.interval.ms: 300000 # 5 minutes
+        max.partition.fetch.bytes: 1048576 # 1 MB
+        fetch.max.wait.ms: 500 # 500 ms
+        retry.backoff.ms: 100 # 100 ms
+        linger.ms: 5 # 5 ms
+        request.timeout.ms: 30000 # 30 seconds
+        metadata.max.age.ms: 300000 # 5 minutes
+        connections.max.idle.ms: 600000 # 10 minutes
+        enable.auto.commit: false
+        isolation.level: read_committed
+        commit.on.checkpoint: true
+        state.cleanup.delay.ms: 60000 # 1 minute
         state.dir: /tmp/kafka-streams # Use a local directory for state store
+        state.store.cache.max.size: 1000 # Limit the size of the state store cache
+        state.store.cache.expiry.ms: 600000 # 10 minutes
+        state.store.cache.cleanup.interval.ms: 60000 # 1 minute
+        state.store.cache.cleanup.batch.size: 100 # Batch size for cache cleanup
+        state.store.cache.cleanup.max.iterations: 10 # Max iterations for cache cleanup
+        state.store.cache.cleanup.min.size: 100 # Minimum size for cache cleanup
+        state.store.cache.cleanup.max.size: 10000 # Maximum size for cache cleanup
+        state.store.cache.cleanup.timeout.ms: 300000 # 5 minutes
+        state.store.cache.cleanup.backoff.ms: 100 # 100 ms
+        state.store.cache.cleanup.retry.backoff.ms: 100 # 100 ms
+        state.store.cache.cleanup.max.retries: 3 # Max retries for cache cleanup
+        state.store.cache.cleanup.retry.interval.ms: 1000 # 1 second
+        state.store.cache.cleanup.retry.max.retries: 3 # Max retries for cache cleanup
+        state.store.cache.cleanup.retry.timeout.ms: 300000 # 5 minutes
+        state.store.cache.cleanup.retry.max.backoff.ms: 1000 # 1 second
+
+
+# Cross-Origin Resource Sharing (CORS)
+cors:
+  allowed-origins: ${FRONTEND_URL:http://localhost:8081}
+  allowed-methods: GET, POST, PUT, DELETE
+  allowed-headers: Authorization, Content-Type
+  allow-credentials: true
 
 # Logging Configuration
 logging:
@@ -69,4 +107,16 @@ logging:
     org.apache.kafka.streams: INFO
     org.apache.kafka.clients: INFO
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  health:
+    db:
+      enabled: true
+    diskspace:
+      enabled: true
+    metrics:
+        enabled: true
 
