@@ -15,6 +15,7 @@ docker build --no-cache -f Dockerfile -t debezium-demo:latest .
 
 # starting db, kafka and debezium
 echo "Starting Docker Compose services..."
+docker container stop debezium-demo-container || true
 docker compose down --remove-orphans
 docker compose up -d
 

@@ -22,4 +22,12 @@ public class KafkaConfig {
                 .replicas(1)
                 .build();
     }
+
+    @Bean
+    public NewTopic createProcessedInvoicesTopic() {
+        return TopicBuilder.name("processed_invoices_topic")
+                .partitions(1)
+                .replicas(1)
+                .build();
+    }
 }
