@@ -24,6 +24,7 @@ public class KafkaStreamConfig {
         this.invoiceService = invoiceService;
     }
 
+
     @Bean
     public KStream<String, String> invoicesStream(StreamsBuilder builder) {
         KStream<String, String> stream = builder.stream("debezium_master.public.invoices");
@@ -31,12 +32,16 @@ public class KafkaStreamConfig {
         //stream values and forward to another topic
         stream.mapValues(rawJson -> {
                     JsonNode beforeJson = beforeJson(rawJson);
+                    if (beforeJson == null) {
+                        //note: new record
+                        return null;
+                    }
                     JsonNode afterJson = afterJson(rawJson);
                     if (afterJson == null) {
                         //note: record deleted, check why
                         return null; // Skip if 'after' is missing
                     }
-                    Invoice invoice = extractInvoice(beforeJson,afterJson);
+                    Invoice invoice = extractInvoice(beforeJson, afterJson);
                     if (invoice == null) {
                         return null; // Skip if invoice extraction fails
                     }
@@ -48,6 +53,9 @@ public class KafkaStreamConfig {
 
     private JsonNode beforeJson(String rawJson) {
         try {
+            if (rawJson == null || rawJson.isEmpty()) {
+                return null;
+            }
             JsonNode root = mapper.readTree(rawJson);
             JsonNode after = root.path("payload").path("before");
             return after.isMissingNode() ? null : after;
@@ -59,6 +67,9 @@ public class KafkaStreamConfig {
 
     private JsonNode afterJson(String rawJson) {
         try {
+            if (rawJson == null || rawJson.isEmpty()) {
+                return null;
+            }
             JsonNode root = mapper.readTree(rawJson);
             JsonNode after = root.path("payload").path("after");
             return after.isMissingNode() ? null : after;
@@ -68,7 +79,7 @@ public class KafkaStreamConfig {
         }
     }
 
-    private Invoice extractInvoice(JsonNode before,JsonNode after) {
+    private Invoice extractInvoice(JsonNode before, JsonNode after) {
         try {
 
             if (after == null || after.isNull() || after.isEmpty()) return null; //check why record was deleted
@@ -77,7 +88,7 @@ public class KafkaStreamConfig {
 
             if (before == null || before.isNull() || before.isEmpty()) {
                 //note: probably a new record/debezium restart issue, check if exists
-                if(invoiceService.existsInvoiceByRecordId(id)){
+                if (invoiceService.existsInvoiceByRecordId(id)) {
                     //return if exists, we checked before
                     System.out.println("Record with ID " + id + " already exists, skipping.");
                     return null;
