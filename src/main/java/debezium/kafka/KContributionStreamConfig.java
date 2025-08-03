@@ -2,6 +2,7 @@ package debezium.kafka;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import debezium.component.ContributionFraudDetector;
 import debezium.dto.ContributionDto;
 import debezium.enums.DebeziumTopic;
 import debezium.enums.KTopic;
@@ -15,16 +16,18 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.math.RoundingMode;
+import java.time.YearMonth;
 import java.util.Map;
+import java.util.Optional;
 
 @Configuration
 public class KContributionStreamConfig {
 
-    private final ContributionService contributionService;
+    private final ContributionFraudDetector contributionFraudDetector;
     private final UtilService utilService;
 
-    public KContributionStreamConfig(ContributionService contributionService, UtilService utilService) {
-        this.contributionService = contributionService;
+    public KContributionStreamConfig(ContributionFraudDetector contributionFraudDetector, UtilService utilService) {
+        this.contributionFraudDetector = contributionFraudDetector;
         this.utilService = utilService;
     }
 
@@ -84,7 +87,7 @@ public class KContributionStreamConfig {
             long id = contributionDtoAfter.id();
             if (before == null || before.isNull() || before.isEmpty()) {
                 //note: probably a new record/debezium restart issue, check if exists
-                if (contributionService.existsContributionByRecordId(id)) {
+                if (contributionFraudDetector.existsContributionByRecordId(id)) {
                     //return if exists, we checked before
                     System.out.println("Record with ID " + id + " already exists, skipping.");
                     return null;
@@ -92,10 +95,15 @@ public class KContributionStreamConfig {
             }
 
             //check fraud
+            Contribution contribution = contributionDtoAfter.toContribution(utilService.getFieldScales(rawJson));
+            Optional<String> reason = contributionFraudDetector.detectFraud(contribution);
+
+
             // check previous amounts
             // check frequency of contributions
             // check for duplicate contributions
             Map<String, Integer> fieldScales = utilService.getFieldScales(rawJson);
+
 
             return contributionDtoAfter.toContribution(fieldScales);
         } catch (Exception e) {
@@ -120,15 +128,12 @@ public class KContributionStreamConfig {
             Contribution contributionAfter = contributionDtoAfter.toContribution(fieldScales);
 
             // check for fraud
-            var beforeTotal = contributionBefore.getEe().add(contributionBefore.getEr());
-            var afterTotal = contributionAfter.getEe().add(contributionAfter.getEr());
-            if ((afterTotal.divide(beforeTotal, RoundingMode.HALF_UP)).doubleValue() > 1.99) {
-                contributionAfter.setReasonFlagged("Contribution amount increased significantly from " + beforeTotal + " to " + afterTotal);
+            Optional<String> reason = contributionFraudDetector.detectFraud(contributionBefore, contributionAfter);
+            if (reason.isPresent()) {
+                contributionAfter.setReasonFlagged(reason.get());
                 return contributionAfter;
             }
-            //check other fraud conditions here
-
-            return null; //no fraud detected, return null to skip processing
+            return null;
         } catch (Exception e) {
             e.printStackTrace(System.err);
             return null;

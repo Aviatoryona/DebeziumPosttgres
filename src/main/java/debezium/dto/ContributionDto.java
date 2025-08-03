@@ -1,11 +1,13 @@
 package debezium.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import debezium.model.Contribution;
 
 import java.util.Map;
 
 import static debezium.service.UtilService.decodeDecimal;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record ContributionDto(
         long id,
         int year,

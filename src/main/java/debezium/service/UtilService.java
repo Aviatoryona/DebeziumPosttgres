@@ -7,6 +7,9 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.LocalDate;
+import java.time.Month;
+import java.time.YearMonth;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -66,6 +69,19 @@ public class UtilService {
         } catch (Exception e) {
             e.printStackTrace(System.err);
             return null;
+        }
+    }
+
+    public boolean isMonthsAgo(int year, String monthString, int numberOfMonths) {
+        try {
+            Month month = Month.valueOf(monthString.toUpperCase());
+            YearMonth contributionPeriod = YearMonth.of(year, month);
+            YearMonth monthsAgo = YearMonth.from(LocalDate.now().minusMonths(numberOfMonths));
+
+            return contributionPeriod.equals(monthsAgo);
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
+            return false;
         }
     }
 
