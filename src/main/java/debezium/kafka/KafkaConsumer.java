@@ -1,6 +1,7 @@
 package debezium.kafka;
 
-import debezium.model.Invoice;
+import debezium.enums.KTopic;
+import debezium.service.ContributionService;
 import debezium.service.InvoiceService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -11,36 +12,35 @@ import org.springframework.stereotype.Component;
 @Component
 public class KafkaConsumer {
     private final InvoiceService invoiceService;
+    private final ContributionService contributionService;
 
-    public KafkaConsumer(InvoiceService invoiceService) {
+    public KafkaConsumer(InvoiceService invoiceService, ContributionService contributionService) {
         this.invoiceService = invoiceService;
+        this.contributionService = contributionService;
     }
 
     @KafkaListener(topicPattern = "processed.*", groupId = "processed-data-group")
     public void listen(ConsumerRecord<String, Object> record) {
         Object o = record.value();
         String topic = record.topic();
-        if (topic.equals("processed_invoices_topic")) {
-            processInvoice(o);
+        KTopic kTopic = KTopic.fromTopicName(topic);
+        if (kTopic==null){
+            log.warn("Received data from unknown topic: {}", topic);
+            return;
+        }
+        switch (kTopic) {
+            case PROCESSED_INVOICES_TOPIC:
+                log.info("Received processed invoice data from topic: {}", topic);
+                invoiceService.processInvoice(o);
+                break;
+            case PROCESSED_CONTRIBUTIONS_TOPIC:
+                log.info("Received processed contribution data from topic: {}", topic);
+                contributionService.processContribution(o);
+                break;
+            default:
+                log.warn("Received data from unknown topic: {}", topic);
         }
     }
 
-    private void processInvoice(Object json){
-        try {
-            if (json == null) {
-                log.warn("Received null invoice data");
-                return;
-            }
-            // Assuming json is a String representation of an Invoice
-            Invoice invoice = Invoice.fromJson(json.toString());
-            if (invoice != null) {
-                invoiceService.save(invoice);
-                log.info("Processed invoice: {}", invoice.getId());
-            } else {
-                log.warn("Failed to parse invoice from JSON: {}", json);
-            }
-        } catch (Exception e) {
-            log.error("Error processing invoice: {}", e.getMessage(), e);
-        }
-    }
+
 }

@@ -1,42 +1,42 @@
 package debezium.kafka;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import debezium.enums.DebeziumTopic;
+import debezium.enums.KTopic;
 import debezium.model.Invoice;
 import debezium.service.InvoiceService;
+import debezium.service.UtilService;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.KStream;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.Base64;
+
+import static debezium.service.UtilService.decodeDecimal;
 
 @Configuration
-public class KafkaStreamConfig {
+public class KInvoiceStreamConfig {
 
     private final InvoiceService invoiceService;
-
-    private final ObjectMapper mapper = new ObjectMapper();
-
-    public KafkaStreamConfig(InvoiceService invoiceService) {
+    private final UtilService  utilService;
+    public KInvoiceStreamConfig(InvoiceService invoiceService, UtilService utilService) {
         this.invoiceService = invoiceService;
+        this.utilService = utilService;
     }
-
 
     @Bean
     public KStream<String, String> invoicesStream(StreamsBuilder builder) {
-        KStream<String, String> stream = builder.stream("debezium_master.public.invoices");
+        KStream<String, String> stream = builder.stream(DebeziumTopic.DEBEZIUM_INVOICES.getTopicName());
 
         //stream values and forward to another topic
         stream.mapValues(rawJson -> {
-                    JsonNode beforeJson = beforeJson(rawJson);
+                    JsonNode beforeJson = utilService.beforeJson(rawJson);
                     if (beforeJson == null) {
                         //note: new record
                         return null;
                     }
-                    JsonNode afterJson = afterJson(rawJson);
+                    JsonNode afterJson = utilService.afterJson(rawJson);
                     if (afterJson == null) {
                         //note: record deleted, check why
                         return null; // Skip if 'after' is missing
@@ -47,36 +47,8 @@ public class KafkaStreamConfig {
                     }
                     return invoice.toString(); // Convert to string or any other format as needed
                 }).filter((key, value) -> value != null) // Filter out null values
-                .to("processed_invoices_topic"); // Forward to another topic
+                .to(KTopic.PROCESSED_INVOICES_TOPIC.getTopicName()); // Forward to another topic
         return stream;
-    }
-
-    private JsonNode beforeJson(String rawJson) {
-        try {
-            if (rawJson == null || rawJson.isEmpty()) {
-                return null;
-            }
-            JsonNode root = mapper.readTree(rawJson);
-            JsonNode after = root.path("payload").path("before");
-            return after.isMissingNode() ? null : after;
-        } catch (Exception e) {
-            e.printStackTrace(System.err);
-            return null;
-        }
-    }
-
-    private JsonNode afterJson(String rawJson) {
-        try {
-            if (rawJson == null || rawJson.isEmpty()) {
-                return null;
-            }
-            JsonNode root = mapper.readTree(rawJson);
-            JsonNode after = root.path("payload").path("after");
-            return after.isMissingNode() ? null : after;
-        } catch (Exception e) {
-            e.printStackTrace(System.err);
-            return null;
-        }
     }
 
     private Invoice extractInvoice(JsonNode before, JsonNode after) {
@@ -109,9 +81,4 @@ public class KafkaStreamConfig {
         }
     }
 
-    private BigDecimal decodeDecimal(String base64, int scale) {
-        byte[] bytes = Base64.getDecoder().decode(base64);
-        BigInteger unscaled = new BigInteger(bytes);
-        return new BigDecimal(unscaled, scale);
-    }
 }
