@@ -27,6 +27,8 @@ public class ContributionFraudDetector {
 
     public Optional<String> detectFraud(Contribution before, Contribution after) {
 
+        List<String> reasons = new ArrayList<>();
+
         BigDecimal beforeTotal = Optional.ofNullable(before.getEe()).orElse(BigDecimal.ZERO)
                 .add(Optional.ofNullable(before.getEr()).orElse(BigDecimal.ZERO));
 
@@ -36,16 +38,44 @@ public class ContributionFraudDetector {
 
         double rate = afterTotal.divide(beforeTotal, RoundingMode.HALF_UP).doubleValue();
         if (rate > 1.99) {
-            return Optional.of(String.format(
-                    "Contribution amount increased by x%.2f (from %.2f to %.2f)",
+            reasons.add(String.format(
+                    "⚡ Contribution amount increased by x%.2f (from %.2f to %.2f)",
                     rate,
                     beforeTotal.doubleValue(),
                     afterTotal.doubleValue()
             ));
         }
+
+        //check average contribution amount to detect suspicious increases
+        checkAverageAllContributions(afterTotal, reasons);
+
         //check other conditions
 
+        if (!reasons.isEmpty()) {
+            return Optional.of(String.join("<br>", reasons));
+        }
+
         return Optional.empty(); // No fraud
+    }
+
+    /**
+     * Checks if the total contribution amount is suspiciously high compared to the average contributions.
+     * If the total contribution is more than double the average, it adds a reason to the list.
+     *
+     * @param afterTotal The total contribution amount after the change.
+     * @param reasons    The list of reasons for fraud detection.
+     */
+    private void checkAverageAllContributions(BigDecimal afterTotal, List<String> reasons) {
+        Contribution averageContribution = contributionService.getAverageContribution();
+        if (averageContribution != null) {
+            BigDecimal averageTotal = Optional.ofNullable(averageContribution.getEe()).orElse(BigDecimal.ZERO)
+                    .add(Optional.ofNullable(averageContribution.getEr()).orElse(BigDecimal.ZERO));
+            if (afterTotal.compareTo(averageTotal.multiply(BigDecimal.valueOf(2))) > 0) {
+                reasons.add(String.format("☠ Contribution amount is suspiciously high: %.2f (average: %.2f)",
+                        afterTotal.doubleValue(),
+                        averageTotal.doubleValue()));
+            }
+        }
     }
 
     public Optional<String> detectFraud(Contribution after) {
@@ -58,15 +88,16 @@ public class ContributionFraudDetector {
                 4
         )) {
             //contribution should be posted earlier, why ARREARS?
-            reasons.add(String.format("Contribution date is more than %s months in the past (%s/%s)",4, after.getYear(), after.getMonth()));
+            reasons.add(String.format("⚠ Contribution date is more than %s months in the past (%s/%s)",4, after.getYear(), after.getMonth()));
         }
 
         // check last contribution date
         ContributionDto last
-                = contributionService.getPreviousContribution(after.getRecordId(), after.getType());
+                = contributionService.getPreviousContribution(after.getRecordId());
         if (last != null) {
             YearMonth lastContributionDate = YearMonth.of(last.year(), Month.valueOf(last.month().toUpperCase()));
             YearMonth currentContributionDate = YearMonth.of(after.getYear(), Month.valueOf(after.getMonth().toUpperCase()));
+
 
             //calculate the difference in year and months
             long monthsDiff = ChronoUnit.MONTHS.between(lastContributionDate, currentContributionDate);
@@ -74,22 +105,29 @@ public class ContributionFraudDetector {
             //check if the currentContributionDate-lastContributionDate is more than x months
             if (monthsDiff >= 4) {
                 //before this contribution, member had x dormant months. Check why
-                reasons.add(String.format("Last contribution was %s months before this.",monthsDiff));
+                reasons.add(String.format("⚠ Last contribution was %s months before this.",monthsDiff));
             }
+
+
         }
 
+
         //check average contribution amount to detect suspicious increases
-        BigDecimal averageContribution = contributionService.getAverageXContributions(after.getRecordId(), after.getType(), 10);
+        //get the average of the last 10 contributions
+        BigDecimal averageContribution = contributionService.getAverageXContributions(after.getRecordId(), 10);
         BigDecimal totalContribution = Optional.ofNullable(after.getEe()).orElse(BigDecimal.ZERO)
                 .add(Optional.ofNullable(after.getEr()).orElse(BigDecimal.ZERO));
         if (averageContribution != null) {
             if (totalContribution.compareTo(averageContribution.multiply(BigDecimal.valueOf(2))) > 0)
-                reasons.add(String.format("Contribution amount is suspiciously high: %.2f (average: %.2f)",
+                reasons.add(String.format("☠ Contribution amount is suspiciously high: %.2f (average: %.2f)",
                         totalContribution.doubleValue(),
                         averageContribution.doubleValue()));
         } else {
-            reasons.add("No contributions before this, sudden large contribution detected.");
+            reasons.add("☠ No contributions before this, sudden large contribution detected.");
         }
+
+        //check the average of all contributions to detect suspicious increases
+        checkAverageAllContributions(totalContribution, reasons);
 
         //check other conditions
 

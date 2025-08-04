@@ -55,18 +55,31 @@ public class ContributionService {
         return  repository.existsContributionByRecordId(id);
     }
 
-    public ContributionDto getPreviousContribution(Long contributionId, String type) {
-        Tuple tuple= nativeRepository.getPreviousContribution(contributionId, type);
+    public ContributionDto getPreviousContribution(Long contributionId) {
+        Tuple tuple= nativeRepository.getPreviousContribution(contributionId);
         if (tuple == null) {
             return null;
         }
     }
 
-    public BigDecimal getAverageXContributions(Long contributionId, String type, int numberOfMonths) {
-        Tuple tuple = nativeRepository.getAverageXContributions(contributionId, type, numberOfMonths);
+    public BigDecimal getAverageXContributions(Long contributionId, int numberOfMonths) {
+        var tuple = nativeRepository.getXContributions(contributionId, numberOfMonths);
         if (tuple == null) {
             return null;
         }
         return tuple.get("average", BigDecimal.class);
+    }
+
+    public Contribution getAverageContribution() {
+        Tuple tuple = nativeRepository.getAverageAllContributions();
+        if (tuple == null) {
+            return null;
+        }
+        BigDecimal averageEe = tuple.get("avg_ee", BigDecimal.class);
+        BigDecimal averageEr = tuple.get("avg_er", BigDecimal.class);
+        Contribution contribution= new Contribution();
+        contribution.setEe(averageEe);
+        contribution.setEr(averageEr);
+        return contribution;
     }
 }
