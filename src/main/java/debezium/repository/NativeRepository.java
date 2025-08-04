@@ -36,7 +36,7 @@ public class NativeRepository {
 
     public Tuple getPreviousContribution(Long contributionId) {
         try {
-            Query query = em.createNativeQuery("select c.id, c.ee, c.er, c.tot\n" +
+            Query query = em.createNativeQuery("select c.id, c.ee, c.er, c.tot,c.year,c.month\n" +
                     "from public.contributions c\n" +
                     "         left join public.contributions c2 on c2.member_id = c.member_id\n" +
                     "where c.sponsor_id = c2.sponsor_id\n" +

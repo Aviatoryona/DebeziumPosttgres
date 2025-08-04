@@ -1,6 +1,5 @@
 package debezium.service;
 
-import debezium.dto.ContributionDto;
 import debezium.model.Contribution;
 import debezium.repository.ContributionRepository;
 import debezium.repository.NativeRepository;
@@ -9,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -21,7 +22,7 @@ public class ContributionService {
         this.nativeRepository = nativeRepository;
     }
 
-    public void processContribution(Object json){
+    public void processContribution(Object json) {
         try {
             if (json == null) {
                 log.warn("Received null invoice data");
@@ -42,7 +43,7 @@ public class ContributionService {
 
     public void save(Contribution co) {
         if (co.getId() != null) {
-            if (repository.existsById(co.getId())){
+            if (repository.existsById(co.getId())) {
                 repository.save(co);
                 return;
             }
@@ -52,23 +53,54 @@ public class ContributionService {
     }
 
     public boolean existsContributionByRecordId(long id) {
-        return  repository.existsContributionByRecordId(id);
+        return repository.existsContributionByRecordId(id);
     }
 
-    public ContributionDto getPreviousContribution(Long contributionId) {
-        Tuple tuple= nativeRepository.getPreviousContribution(contributionId);
+    public Contribution getPreviousContribution(Long contributionId) {
+        Tuple tuple = nativeRepository.getPreviousContribution(contributionId);
         if (tuple == null) {
             return null;
         }
+        BigDecimal ee = tuple.get("ee", BigDecimal.class);
+        BigDecimal er = tuple.get("er", BigDecimal.class);
+        BigDecimal tot = tuple.get("tot", BigDecimal.class);
+        var year = tuple.get("year", Integer.class);
+        var month = tuple.get("month", String.class);
+        Contribution contribution = new Contribution();
+        contribution.setRecordId(tuple.get("id", Long.class));
+        contribution.setEe(ee);
+        contribution.setEr(er);
+        contribution.setTotal(tot);
+        contribution.setYear(year);
+        contribution.setMonth(month);
+
+        return contribution;
     }
 
     public BigDecimal getAverageXContributions(Long contributionId, int numberOfMonths) {
-        var tuple = nativeRepository.getXContributions(contributionId, numberOfMonths);
-        if (tuple == null) {
+        List<Tuple> xContributions = nativeRepository.getXContributions(contributionId, numberOfMonths);
+        if (xContributions == null || xContributions.isEmpty()) {
             return null;
         }
-        return tuple.get("average", BigDecimal.class);
+
+        BigDecimal sum = xContributions.parallelStream()
+                .map(tuple -> {
+                    BigDecimal ee = tuple.get("ee", BigDecimal.class);
+                    BigDecimal er = tuple.get("er", BigDecimal.class);
+                    if (ee == null) ee = BigDecimal.ZERO;
+                    if (er == null) er = BigDecimal.ZERO;
+                    return ee.add(er);
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        //note: compute frequency of contributions
+
+        if (sum.compareTo(BigDecimal.ZERO) == 0) {
+            return null;
+        }
+        return sum.divide(BigDecimal.valueOf(xContributions.size()), RoundingMode.HALF_UP);
     }
+
 
     public Contribution getAverageContribution() {
         Tuple tuple = nativeRepository.getAverageAllContributions();
@@ -77,7 +109,7 @@ public class ContributionService {
         }
         BigDecimal averageEe = tuple.get("avg_ee", BigDecimal.class);
         BigDecimal averageEr = tuple.get("avg_er", BigDecimal.class);
-        Contribution contribution= new Contribution();
+        Contribution contribution = new Contribution();
         contribution.setEe(averageEe);
         contribution.setEr(averageEr);
         return contribution;

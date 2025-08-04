@@ -32,6 +32,12 @@ public class KContributionStreamConfig {
     }
 
 
+    /**
+     * Configures a Kafka Streams application to process contributions.
+     *
+     * @param builder The StreamsBuilder instance used to build the stream processing topology.
+     * @return A KStream that processes contributions from the specified topic.
+     */
     @Bean
     public KStream<String, String> stream(StreamsBuilder builder) {
         KStream<String, String> stream = builder.stream(DebeziumTopic.DEBEZIUM_CONTRIBUTIONS.getTopicName());
@@ -74,10 +80,16 @@ public class KContributionStreamConfig {
     }
 
 
+    /**
+     * Processes a new contribution record.
+     *
+     * @param rawJson The raw JSON string representing the contribution.
+     * @return A Contribution object if fraud is detected, null otherwise.
+     */
     private Contribution processNewContribution(String rawJson) {
         try {
             ObjectMapper mapper = utilService.mapper;
-            JsonNode before = utilService.beforeJson(rawJson);
+            JsonNode before = utilService.beforeJson(rawJson); //can be removed.
             JsonNode after = utilService.afterJson(rawJson);
 
             if (after == null || after.isNull() || after.isEmpty()) return null;
@@ -95,23 +107,26 @@ public class KContributionStreamConfig {
             }
 
             //check fraud
-            Contribution contribution = contributionDtoAfter.toContribution(utilService.getFieldScales(rawJson));
-            Optional<String> reason = contributionFraudDetector.detectFraud(contribution);
-
-
-            // check previous amounts
-            // check frequency of contributions
-            // check for duplicate contributions
-            Map<String, Integer> fieldScales = utilService.getFieldScales(rawJson);
-
-
-            return contributionDtoAfter.toContribution(fieldScales);
+            Contribution contributionAfter = contributionDtoAfter.toContribution(utilService.getFieldScales(rawJson));
+            Optional<String> reason = contributionFraudDetector.detectFraud(contributionAfter);
+            if (reason.isPresent()) {
+                contributionAfter.setReasonFlagged(reason.get());
+                return contributionAfter;
+            }
+            return null;
         } catch (Exception e) {
             e.printStackTrace(System.err);
             return null;
         }
     }
 
+
+    /**
+     * Extracts a contribution from the raw JSON string.
+     *
+     * @param rawJson The raw JSON string representing the contribution.
+     * @return A Contribution object if fraud is detected, null otherwise.
+     */
     private Contribution extractContribution(String rawJson) {
         try {
             ObjectMapper mapper = utilService.mapper;
