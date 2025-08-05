@@ -46,7 +46,7 @@ public class ContributionFraudDetector {
         double rate = afterTotal.divide(beforeTotal, RoundingMode.HALF_UP).doubleValue();
         if (rate > 1.99 || rate < 0.51) {
             reasons.add(String.format(
-                    "⚡ Contribution amount increased/decreased by large margin of x%.6f (from %.2f to %.2f)",
+                    "&#128681 Contribution amount increased/decreased by large margin of x%.6f (from %.2f to %.2f)",
                     rate,
                     beforeTotal.doubleValue(),
                     afterTotal.doubleValue()
@@ -65,7 +65,7 @@ public class ContributionFraudDetector {
         //check other conditions
 
         if (!reasons.isEmpty()) {
-            return Optional.of(String.join("<br>", reasons));
+            return Optional.of(String.join("<br><br>", reasons));
         }
 
         return Optional.empty(); // No fraud
@@ -87,7 +87,7 @@ public class ContributionFraudDetector {
                 4
         )) {
             //contribution should be posted earlier, why ARREARS?
-            reasons.add(String.format("⚠ Contribution date is more than %s months in the past (%s/%s)", 4, after.getYear(), after.getMonth()));
+            reasons.add(String.format("&#9889 Contribution date is more than %s months in the past (%s/%s)", 4, after.getYear(), after.getMonth()));
         }
 
         // check last contribution date
@@ -107,7 +107,7 @@ public class ContributionFraudDetector {
             //check if the currentContributionDate-lastContributionDate is more than x months
             if (monthsDiff >= 4) {
                 //before this contribution, member had x dormant months. Check why
-                reasons.add(String.format("💀 Sudden large contribution detected. Last contribution was %s months before this. ", monthsDiff));
+                reasons.add(String.format("&#128165 Sudden large contribution detected. Last contribution was %s months before this. ", monthsDiff));
             }
 
         }
@@ -126,7 +126,7 @@ public class ContributionFraudDetector {
         //check other conditions
 
         if (!reasons.isEmpty()) {
-            return Optional.of(String.join("<br>", reasons));
+            return Optional.of(String.join("<br><br>", reasons));
         }
 
         return Optional.empty(); // No fraud
@@ -147,7 +147,7 @@ public class ContributionFraudDetector {
                 .add(Optional.ofNullable(after.getEr()).orElse(BigDecimal.ZERO));
         if (averageContribution != null) {
             if (totalContribution.compareTo(averageContribution.multiply(BigDecimal.valueOf(2))) > 0)
-                reasons.add(String.format("☠ Contribution amount is suspiciously high: %.2f (Members' Average: %.2f)",
+                reasons.add(String.format("&#128293 Contribution amount is suspiciously high: %.2f (Members' Average: %.2f)",
                         totalContribution.doubleValue(),
                         averageContribution.doubleValue()));
         }
@@ -167,7 +167,7 @@ public class ContributionFraudDetector {
             BigDecimal averageTotal = Optional.ofNullable(averageContribution.getEe()).orElse(BigDecimal.ZERO)
                     .add(Optional.ofNullable(averageContribution.getEr()).orElse(BigDecimal.ZERO));
             if (afterTotal.compareTo(averageTotal.multiply(BigDecimal.valueOf(9))) > 0) {
-                reasons.add(String.format("☠ Contribution amount is suspiciously high: %.2f (DB Average: %.2f)",
+                reasons.add(String.format("&#128293 Contribution amount is suspiciously high: %.2f (DB Average: %.2f)",
                         afterTotal.doubleValue(),
                         averageTotal.doubleValue()));
             }
@@ -184,7 +184,7 @@ public class ContributionFraudDetector {
      */
     public void checkMaximumAllowedContribution(BigDecimal afterTotal, BigDecimal maxAllowed, List<String> reasons) {
         if (afterTotal.compareTo(maxAllowed) > 0) {
-            reasons.add(String.format("☠ Contribution amount is too high: %.2f (max allowed: %.2f)", afterTotal.doubleValue(), maxAllowed.doubleValue()));
+            reasons.add(String.format("&#128293 Contribution amount is too high: %.2f (max allowed: %.2f)", afterTotal.doubleValue(), maxAllowed.doubleValue()));
         }
     }
 
