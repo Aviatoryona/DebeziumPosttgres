@@ -22,6 +22,12 @@ public class ContributionService {
         this.nativeRepository = nativeRepository;
     }
 
+    /**
+     * Processes a contribution from a JSON object.
+     * It parses the JSON, creates a Contribution object, and saves it to the repository.
+     *
+     * @param json The JSON object containing contribution data.
+     */
     public void processContribution(Object json) {
         try {
             if (json == null) {
@@ -41,6 +47,13 @@ public class ContributionService {
         }
     }
 
+    /**
+     * Saves a contribution to the repository.
+     * If the contribution has an ID and it exists, it updates the existing record.
+     * If the contribution does not have an ID or the ID does not exist, it creates a new record.
+     *
+     * @param co The Contribution object to save.
+     */
     public void save(Contribution co) {
         if (co.getId() != null) {
             if (repository.existsById(co.getId())) {
@@ -52,10 +65,22 @@ public class ContributionService {
         repository.save(co);
     }
 
+    /**
+     * Checks if a contribution exists by its record ID.
+     *
+     * @param id The record ID to check for existence.
+     * @return true if a contribution with the given record ID exists, false otherwise.
+     */
     public boolean existsContributionByRecordId(long id) {
         return repository.existsContributionByRecordId(id);
     }
 
+    /**
+     * Retrieves the previous contribution for a given contribution ID.
+     *
+     * @param contributionId The ID of the contribution to retrieve the previous contribution for.
+     * @return A Contribution object representing the previous contribution, or null if no previous contribution exists.
+     */
     public Contribution getPreviousContribution(Long contributionId) {
         Tuple tuple = nativeRepository.getPreviousContribution(contributionId);
         if (tuple == null) {
@@ -77,6 +102,13 @@ public class ContributionService {
         return contribution;
     }
 
+    /**
+     * Retrieves the average contributions for a given contribution ID over a specified number of months.
+     *
+     * @param contributionId The ID of the contribution to retrieve averages for.
+     * @param numberOfMonths The number of months to consider for averaging.
+     * @return The average contributions as a BigDecimal, or null if no contributions exist.
+     */
     public BigDecimal getAverageXContributions(Long contributionId, int numberOfMonths) {
         List<Tuple> xContributions = nativeRepository.getXContributions(contributionId, numberOfMonths);
         if (xContributions == null || xContributions.isEmpty()) {
@@ -102,6 +134,11 @@ public class ContributionService {
     }
 
 
+    /**
+     * Retrieves the average contribution across all contributions.
+     *
+     * @return A Contribution object containing the average employee and employer contributions, or null if no contributions exist.
+     */
     public Contribution getAverageContribution() {
         Tuple tuple = nativeRepository.getAverageAllContributions();
         if (tuple == null) {

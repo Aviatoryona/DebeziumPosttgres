@@ -1,5 +1,6 @@
 package debezium.component;
 
+import debezium.enums.MonthEnum;
 import debezium.model.Contribution;
 import debezium.service.ContributionService;
 import debezium.service.UtilService;
@@ -53,7 +54,7 @@ public class ContributionFraudDetector {
         }
 
         //check average contribution amount to detect suspicious increases
-        checkPreviousAverageContribution(after,10, reasons);
+        checkPreviousAverageContribution(after, 10, reasons);
 
         //check average contribution amount to detect suspicious increases
         checkAverageAllContributions(afterTotal, reasons);
@@ -92,8 +93,12 @@ public class ContributionFraudDetector {
         // check last contribution date
         Contribution last = contributionService.getPreviousContribution(after.getRecordId());
         if (last != null) {
-            YearMonth lastContributionDate = YearMonth.of(last.getYear(), Month.valueOf(last.getMonth().toUpperCase()));
-            YearMonth currentContributionDate = YearMonth.of(after.getYear(), Month.valueOf(after.getMonth().toUpperCase()));
+            YearMonth lastContributionDate = YearMonth.of(last.getYear(), Month.valueOf(
+                    MonthEnum.valueOf(last.getMonth().toUpperCase()).getName()
+            ));
+            YearMonth currentContributionDate = YearMonth.of(after.getYear(), Month.valueOf(
+                    MonthEnum.valueOf(after.getMonth().toUpperCase()).getName()
+            ));
 
 
             //calculate the difference in year and months
@@ -102,13 +107,13 @@ public class ContributionFraudDetector {
             //check if the currentContributionDate-lastContributionDate is more than x months
             if (monthsDiff >= 4) {
                 //before this contribution, member had x dormant months. Check why
-                reasons.add(String.format("⚠ Sudden large contribution detected. Last contribution was %s months before this. ", monthsDiff));
+                reasons.add(String.format("💀 Sudden large contribution detected. Last contribution was %s months before this. ", monthsDiff));
             }
 
         }
 
         //check average contribution amount to detect suspicious increases
-        checkPreviousAverageContribution(after,10, reasons);
+        checkPreviousAverageContribution(after, 10, reasons);
 
         BigDecimal totalContribution = Optional.ofNullable(after.getEe()).orElse(BigDecimal.ZERO)
                 .add(Optional.ofNullable(after.getEr()).orElse(BigDecimal.ZERO));
@@ -135,7 +140,7 @@ public class ContributionFraudDetector {
      * @param numberOfMonths The number of months to consider for the average.
      * @param reasons        The list of reasons for fraud detection.
      */
-    private void checkPreviousAverageContribution(Contribution after,int numberOfMonths, List<String> reasons) {
+    private void checkPreviousAverageContribution(Contribution after, int numberOfMonths, List<String> reasons) {
         //get the average of the last 10 contributions
         BigDecimal averageContribution = contributionService.getAverageXContributions(after.getRecordId(), numberOfMonths);
         BigDecimal totalContribution = Optional.ofNullable(after.getEe()).orElse(BigDecimal.ZERO)
